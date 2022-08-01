@@ -6,7 +6,7 @@ const tokens = (n) => { // We want this to be a dynamic function that can conver
 }
 
 describe('Token', () => {
-  let token, accounts, deployer 
+  let token, accounts, deployer // Declaring these variables outside the beforeEach() so we can read them in other functions
 
   beforeEach(async () => { // Code that gets executed before each one of the examples below
     // Fetch token from Blockchain
