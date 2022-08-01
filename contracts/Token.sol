@@ -13,7 +13,7 @@ contract Token {
 	
 	// Send tokens
 
-	constructor(string memory _name, string memory _symbol, uint256 _totalSupply) { // Make the token configurable easily (name,symbol etc.) so that we can create multiple tokens
+	constructor(string memory _name, string memory _symbol, uint256 _totalSupply) { // Make the token easily configurable (name,symbol etc.) so that we can create multiple tokens
 		name = _name;
 		symbol = _symbol;
 		totalSupply = _totalSupply * (10**decimals); // 1,000,000 x 10^18
