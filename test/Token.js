@@ -6,14 +6,16 @@ const tokens = (n) => { // We want this to be a dynamic function that can conver
 }
 
 describe('Token', () => { // Tests go inside this separate block 
-  let token, accounts, deployer, receiver // Declaring variables here so their scope is accessible inside every single function below
+  let token, accounts, deployer, receiver, exchange // Declaring variables here so their scope is accessible inside every single function below
 
   beforeEach(async () => { // Code that gets executed before each one of the examples below. Speeds up the testing time and keeps the code clean
     const Token = await ethers.getContractFactory('Token') // Fetch token from blockchain
     token = await Token.deploy('Dapp University', 'DAPP', '1000000') // Assign value to the token
+    
     accounts = await ethers.getSigners() // Pull the getSigners() function from ethers to fetch the accounts from Hardhat node
-    deployer = accounts[0] // Assign the number 0 address from Hardhat node
+    deployer = accounts[0] // Assign the number 0 address to a deployer from Hardhat node
     receiver = accounts[1] // Assign the number 1 address to a receiver
+    exchange = accounts[2] // Assign the number 2 address to an exchange to test approve, allowance, transferFrom functions
   })
 
   describe('Deployment', () => { // Tests go inside this separate block 
@@ -41,7 +43,9 @@ describe('Token', () => { // Tests go inside this separate block
     it('assigns total supply to deployer', async () => {
       expect(await token.balanceOf(deployer.address)).to.equal(totalSupply) // Check that total supply is assigned to the deployer's address 
     })
+
   })
+
 
   describe('Sending Tokens', () => {
     let amount, transaction, result
@@ -68,6 +72,7 @@ describe('Token', () => { // Tests go inside this separate block
         expect(args.to).to.equal(receiver.address)
         expect(args.value).to.equal(amount)
       })
+
     })
 
     describe('Failure', () => {
@@ -76,10 +81,47 @@ describe('Token', () => { // Tests go inside this separate block
         await expect(token.connect(deployer).transfer(receiver.address, invalidAmount)).to.be.reverted
       })
 
-      it('rejects invalid recepient', async () => { // Make sure you can't send tokens to random address
+      it('rejects invalid recipient', async () => { // Make sure you can't send tokens to random address
         const amount = tokens(100) 
-        await expect(token.connect(deployer).transfer('0x00000000000000', amount)).to.be.reverted
+        await expect(token.connect(deployer).transfer('0x0000000000000000000000000000000000000000', amount)).to.be.reverted
+      })
+
+    })
+
+  })
+
+  describe('Approving Tokens', () => {
+    let amount, transaction, result
+
+    beforeEach(async () => {
+      amount = tokens(100) 
+      transaction = await token.connect(deployer).approve(exchange.address, amount) 
+      result = await transaction.wait()      
+    })
+
+    describe('Success', () => {
+      it('allocates an allowance for delegated token spending', async () => { // Check for allowance value
+        expect(await token.allowance(deployer.address, exchange.address)).to.equal(amount)
+      })
+
+      it('emits an Approval event', async () => {
+        const event = result.events[0]
+        expect(event.event).to.equal('Approval')
+
+        const args = event.args // Reading the event args from console.log which we've removed from this code
+        expect(args.owner).to.equal(deployer.address)
+        expect(args.spender).to.equal(exchange.address)
+        expect(args.value).to.equal(amount)
+      })
+
+    })
+
+    describe('Failure', () => {
+      it('rejects invalid spenders', async () => { // Make sure you can't send tokens to random address 
+        await expect(token.connect(deployer).approve('0x0000000000000000000000000000000000000000', amount)).to.be.reverted
       })
     })
+
   })
+
 })

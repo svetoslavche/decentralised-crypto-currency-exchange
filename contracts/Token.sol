@@ -9,11 +9,18 @@ contract Token {
 	uint256 public decimals = 18; // Leave the decimals hardcoded because having 18 is universal for ERC-20
 	uint256 public totalSupply; 
 
-	mapping (address => uint256) public balanceOf; 	// Track balances
+	mapping(address => uint256) public balanceOf; // Track balances
+	mapping(address => mapping(address => uint256)) public allowance; // Nested mapping for the allowance
 
 	event Transfer(
 		address indexed from, 
 		address indexed to, 
+		uint256 value
+	);
+
+	event Approval(
+		address indexed owner, 
+		address indexed spender, 
 		uint256 value
 	);
 
@@ -33,13 +40,24 @@ contract Token {
 		returns (bool success) 
 	{ 	
 		require(balanceOf[msg.sender] >= _value); // Require that sender has enough tokens to spend
-		require(_to != address(0)); // and it is the correct address
+		require(_to != address(0)); // and it has the correct address
 
 		balanceOf[msg.sender] = balanceOf[msg.sender] - _value; // Deduct tokens from spender
 		balanceOf[_to] = balanceOf[_to] + _value; // Credit tokens to receiver
 
 		emit Transfer(msg.sender, _to, _value); // Emit event
-
 		return true;
 	} 
+
+	function approve(address _spender, uint256 _value) // Approve allowance
+		public 
+		returns(bool success) 
+	{
+		require(_spender != address(0)); 
+
+		allowance[msg.sender][_spender] = _value;
+		emit Approval(msg.sender, _spender, _value);
+		return true;
+	}
+
 }
