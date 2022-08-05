@@ -43,11 +43,9 @@ describe('Token', () => { // Tests go inside this separate block
     it('assigns total supply to deployer', async () => {
       expect(await token.balanceOf(deployer.address)).to.equal(totalSupply) // Check that total supply is assigned to the deployer's address 
     })
-
   })
 
-
-  describe('Sending Tokens', () => {
+  describe('Sending Tokens', () => {    
     let amount, transaction, result
 
     describe('Success', () => {
@@ -72,7 +70,6 @@ describe('Token', () => { // Tests go inside this separate block
         expect(args.to).to.equal(receiver.address)
         expect(args.value).to.equal(amount)
       })
-
     })
 
     describe('Failure', () => {
@@ -85,9 +82,7 @@ describe('Token', () => { // Tests go inside this separate block
         const amount = tokens(100) 
         await expect(token.connect(deployer).transfer('0x0000000000000000000000000000000000000000', amount)).to.be.reverted
       })
-
     })
-
   })
 
   describe('Approving Tokens', () => {
@@ -113,13 +108,62 @@ describe('Token', () => { // Tests go inside this separate block
         expect(args.spender).to.equal(exchange.address)
         expect(args.value).to.equal(amount)
       })
-
     })
 
     describe('Failure', () => {
       it('rejects invalid spenders', async () => { // Make sure you can't send tokens to random address 
         await expect(token.connect(deployer).approve('0x0000000000000000000000000000000000000000', amount)).to.be.reverted
       })
+    })
+  })
+
+  describe('Delegated Token Transfers', () => {
+    let amount, transaction, result
+
+    beforeEach(async () => { // The prerequisite (1st step) is to call approve(); from the smart contract
+      amount = tokens(100) 
+      transaction = await token.connect(deployer).approve(exchange.address, amount)  // We (the deployer) approve the exchange to sign the transaction & spend tokens
+      result = await transaction.wait()      
+    })
+
+    describe('Success', () => { // The 2nd step is to call transferFrom();
+      beforeEach(async () => {
+        transaction = await token.connect(exchange).transferFrom(deployer.address, receiver.address, amount) // The exchange is calling the transferFrom and sending it to 3rd person
+        result = await transaction.wait()      
+      })
+
+      it('transfers token balances', async () => { // Check that tokens were transfered (balance changed)
+        expect(await token.balanceOf(deployer.address)).to.be.equal(ethers.utils.parseUnits('999900', 'ether'))  
+        expect(await token.balanceOf(receiver.address)).to.equal(amount)
+      }) 
+
+      it('resets the allowance', async () => { // Check that the allowance has been reset
+        expect(await token.allowance(deployer.address, exchange.address)).to.be.equal(0)
+      })
+
+      it('emits a Transfer event', async () => {
+        const event = result.events[0]
+        expect(event.event).to.equal('Transfer')
+
+        const args = event.args // Reading the event args from console.log which we've removed from this code
+        expect(args.from).to.equal(deployer.address)
+        expect(args.to).to.equal(receiver.address)
+        expect(args.value).to.equal(amount)
+      })      
+    })
+
+    describe('Failure', () => {
+
+      it('rejects insufficient balances', async () => {
+        const invalidAmount = tokens(100000000) // Attempt to transfer 100 million tokens, which is greater than total supply
+        await expect(token.connect(exchange).transfer(deployer.address, receiver.address, invalidAmount)).to.be.reverted
+      })
+
+      it('rejects invalid recipient', async () => { // Make sure the exchange can't send tokens to random address
+        const amount = tokens(100) 
+        await expect(token.connect(exchange).transfer('0x0000000000000000000000000000000000000000', amount)).to.be.reverted
+      })      
+
     })
 
   })

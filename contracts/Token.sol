@@ -40,14 +40,24 @@ contract Token {
 		returns (bool success) 
 	{ 	
 		require(balanceOf[msg.sender] >= _value); // Require that sender has enough tokens to spend
-		require(_to != address(0)); // and it has the correct address
 
-		balanceOf[msg.sender] = balanceOf[msg.sender] - _value; // Deduct tokens from spender
-		balanceOf[_to] = balanceOf[_to] + _value; // Credit tokens to receiver
+		_transfer(msg.sender, _to, _value);
 
-		emit Transfer(msg.sender, _to, _value); // Emit event
 		return true;
 	} 
+
+	function _transfer(
+		address _from,
+		address _to,
+		uint256 _value
+	) internal {
+		require(_to != address(0)); // and it has the correct address
+
+		balanceOf[_from] = balanceOf[_from] - _value; // Deduct tokens from address
+		balanceOf[_to] = balanceOf[_to] + _value; // Credit tokens to address
+
+		emit Transfer(_from, _to, _value); // Emit event
+	}
 
 	function approve(address _spender, uint256 _value) // Approve allowance
 		public 
@@ -59,5 +69,24 @@ contract Token {
 		emit Approval(msg.sender, _spender, _value);
 		return true;
 	}
+
+	function transferFrom(
+		address _from, 
+		address _to, 
+		uint256 _value
+	) 
+		public 
+		returns (bool success) 
+	{
+		require(_value <= balanceOf[_from]); // which is the same requirement as in the main function transfer but in reverse 
+		require(_value <= allowance[_from][msg.sender]); // _from is the person who's authorizing the transfer, in this case the sender/deployer. // so we see their what allowance is and if the _value is less or equal then the condition will be met and execute the rest. if not, throw and error.
+
+		allowance[_from][msg.sender] = allowance[_from][msg.sender] - _value; // Reset allowance
+
+		_transfer(_from, _to, _value); // Spend tokens
+
+		return true;
+	}
+
 
 }
