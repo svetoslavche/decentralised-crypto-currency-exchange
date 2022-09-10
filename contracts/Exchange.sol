@@ -8,9 +8,41 @@ contract Exchange {
 	address public feeAccount; // State variable for the account that receives the exchange fees
 	uint256 public feePercent; // State variable for percentage fees
 	mapping(address => mapping (address => uint256)) public tokens; // Track how many tokens each user has on the exchange
+	mapping(uint256 => _Order) public orders; // Order mapping
+	uint256 public orderCount; //
 
-	event Deposit(address token, address user, uint256 amount, uint256 balance); // Creating a deposit event so we can emit it later
-	event Withdraw(address token, address user, uint256 amount, uint256 balance); // Creating a withdraw event so we can emit it later
+	event Deposit( // Creating a deposit event so we can emit it later
+	address token,
+	address user,
+	uint256 amount,
+	uint256 balance
+	); 
+	event Withdraw( // Creating a withdraw event so we can emit it later
+	address token,
+	address user,
+	uint256 amount,
+	uint256 balance
+	); 
+	event Order ( // Creating an Order event so we can emit it later
+		uint256 id, // Unique identifier for order
+		address user, // User who made order
+		address tokenGet, // Address of the token they receive
+		uint256 amountGet, // Amount they receive
+		address tokenGive, // Address of the token they give
+		uint256 amountGive, // Amount they give
+		uint256 timestamp // When order was created
+	);
+
+	struct _Order { 
+		// Attributes of an order
+		uint256 id; // Unique identifier for order
+		address user; // User who made order
+		address tokenGet; // Address of the token they receive
+		uint256 amountGet; // Amount they receive
+		address tokenGive; // Address of the token they give
+		uint256 amountGive; // Amount they give
+		uint256 timestamp; // When order was created
+	} 
 
 	constructor(address _feeAccount, uint256 _feePercent) {
 		feeAccount = _feeAccount;
@@ -48,4 +80,41 @@ contract Exchange {
 	{
 		return tokens[_token][_user];
 	}
+
+	// ------------------------
+	// MAKE & CANCEL ORDERS
+	function makeOrder(
+		address _tokenGet, // Token Get (token they want to receive) - which and token and how much?
+		uint256 _amountGet,
+		address _tokenGive, // Token Give (token they want to spend) - which and token and how much?
+		uint256 _amountGive
+	) public {
+		// Prevents orders if tokens aren't on exchange
+		require(balanceOf(_tokenGive, msg.sender) >= _amountGive);
+
+
+		// Instantiate a new order
+		orderCount = orderCount + 1;
+		orders[orderCount] = _Order(
+			orderCount, // id 1, 2, 3...
+			msg.sender, // user
+			_tokenGet, 
+			_amountGet,
+			_tokenGive,
+			_amountGive,
+			block.timestamp // timestamp put on the blockchain
+		);
+
+		// Emit event
+		emit Order(
+			orderCount,
+			msg.sender,
+			_tokenGet,
+			_amountGet,
+			_tokenGive,
+			_amountGive,
+			block.timestamp
+		);
+	}
+
 }
