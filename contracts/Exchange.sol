@@ -10,6 +10,7 @@ contract Exchange {
 	mapping(address => mapping (address => uint256)) public tokens; // Track how many tokens each user has on the exchange
 	mapping(uint256 => _Order) public orders; // Order mapping
 	uint256 public orderCount; //
+	mapping(uint256 => bool) public orderCancelled; // Cancel orders (true/false)
 
 	event Deposit( // Creating a deposit event so we can emit it later
 	address token,
@@ -24,6 +25,15 @@ contract Exchange {
 	uint256 balance
 	); 
 	event Order ( // Creating an Order event so we can emit it later
+		uint256 id, // Unique identifier for order
+		address user, // User who made order
+		address tokenGet, // Address of the token they receive
+		uint256 amountGet, // Amount they receive
+		address tokenGive, // Address of the token they give
+		uint256 amountGive, // Amount they give
+		uint256 timestamp // When order was created
+	);
+	event Cancel ( // Creating a Cancel event so we can emit it later
 		uint256 id, // Unique identifier for order
 		address user, // User who made order
 		address tokenGet, // Address of the token they receive
@@ -84,10 +94,10 @@ contract Exchange {
 	// ------------------------
 	// MAKE & CANCEL ORDERS
 	function makeOrder(
-		address _tokenGet, // Token Get (token they want to receive) - which and token and how much?
-		uint256 _amountGet,
-		address _tokenGive, // Token Give (token they want to spend) - which and token and how much?
-		uint256 _amountGive
+		address _tokenGet, // Token Get (which token they want to receive)
+		uint256 _amountGet, // How much?
+		address _tokenGive, // Token Give (which token they want to spend) 
+		uint256 _amountGive // How much?
 	) public {
 		// Prevents orders if tokens aren't on exchange
 		require(balanceOf(_tokenGive, msg.sender) >= _amountGive);
@@ -105,14 +115,33 @@ contract Exchange {
 			block.timestamp // timestamp put on the blockchain
 		);
 
-		// Emit event
-		emit Order(
+		emit Order( // Emit Order event
 			orderCount,
 			msg.sender,
 			_tokenGet,
 			_amountGet,
 			_tokenGive,
 			_amountGive,
+			block.timestamp
+		);
+	}
+
+	function cancelOrder(uint256 _id) public {
+		_Order storage _order = orders[_id]; // Fetch the order 
+
+		require(address(_order.user) == msg.sender); // Ensure the caller of the function is the owner of the order
+
+		require(_order.id == _id); // Order must exist	
+
+		orderCancelled[_id] = true; // Cancel the order
+
+		emit Cancel( // Emit Cancel event
+			_order.id,
+			msg.sender,
+			_order.tokenGet,
+			_order.amountGet,
+			_order.tokenGive,
+			_order.amountGive,
 			block.timestamp
 		);
 	}
