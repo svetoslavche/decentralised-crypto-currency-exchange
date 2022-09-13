@@ -46,7 +46,7 @@ contract Token {
 		return true;
 	} 
 
-	function _transfer(
+	function _transfer( // internal piece of functionality that the transferFrom and transfer function can use, so the code isn't duplicated
 		address _from,
 		address _to,
 		uint256 _value

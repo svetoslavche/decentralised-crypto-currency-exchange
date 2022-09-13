@@ -48,6 +48,7 @@ describe('Exchange', () => {
       beforeEach(async () => { 
         transaction = await token1.connect(user1).approve(exchange.address, amount) // Approve token
         result = await transaction.wait()
+        
         transaction = await exchange.connect(user1).depositToken(token1.address, amount) // Deposit token
         result = await transaction.wait()
       })
@@ -85,8 +86,10 @@ describe('Exchange', () => {
       beforeEach(async () => { 
         transaction = await token1.connect(user1).approve(exchange.address, amount) // Approve tokens
         result = await transaction.wait()
+        
         transaction = await exchange.connect(user1).depositToken(token1.address, amount) // Deposit tokens
         result = await transaction.wait()
+        
         transaction = await exchange.connect(user1).withdrawToken(token1.address, amount) // Withdraw tokens
         result = await transaction.wait()
       })
@@ -142,8 +145,10 @@ describe('Exchange', () => {
       beforeEach(async () => {
         transaction = await token1.connect(user1).approve(exchange.address, amount) // Approve tokens
         result = await transaction.wait()
+        
         transaction = await exchange.connect(user1).depositToken(token1.address, amount) // Deposit tokens
         result = await transaction.wait()
+        
         transaction = await exchange.connect(user1).makeOrder(token2.address, amount, token1.address, amount) // Make order
         result = await transaction.wait()
       })
@@ -182,14 +187,27 @@ describe('Exchange', () => {
     beforeEach(async () => {
       transaction = await token1.connect(user1).approve(exchange.address, amount) // Approve tokens deposit
       result = await transaction.wait()
+     
       transaction = await exchange.connect(user1).depositToken(token1.address, amount) // user1 deposits tokens
       result = await transaction.wait()
+      
+      transaction = await token2.connect(deployer).transfer(user2.address, tokens(100)) // Give tokens to user2
+      result = await transaction.wait()
+
+      transaction = await token2.connect(user2).approve(exchange.address, tokens(2)) // Approve tokens deposit
+      result = await transaction.wait()      
+
+      transaction = await exchange.connect(user2).depositToken(token2.address, tokens(2)) // user2 deposits tokens
+      result = await transaction.wait()
+      
       transaction = await exchange.connect(user1).makeOrder(token2.address, amount, token1.address, amount) // Make Order
       result = await transaction.wait()
     })
 
     describe('Cancelling orders', async () => {
+      
       describe('Success', async () => {
+        
         beforeEach(async () => { 
           transaction = await exchange.connect(user1).cancelOrder(1) // Cancel order
           result = await transaction.wait()
@@ -234,5 +252,77 @@ describe('Exchange', () => {
         })
       })
     })
+
+    describe('Filling orders', async () => {
+      
+      describe('Success', async () => {
+        
+        beforeEach(async () => { // user2 fills order
+          transaction = await exchange.connect(user2).fillOrder('1')
+          result = await transaction.wait()
+        })
+
+
+        it('executes trades and charge fees', async () => { // Ensure trade happens
+          // Token Give
+          expect(await exchange.balanceOf(token1.address, user1.address)).to.equal(tokens(0))
+          // user1 should have 0 tokens because they deposited 1 token, made order for 1 token and the order has been filled
+          expect(await exchange.balanceOf(token1.address, user2.address)).to.equal(tokens(1)) // DAPP
+          // user2 should now have that token
+          expect(await exchange.balanceOf(token1.address, feeAccount.address)).to.equal(tokens(0))
+          // no fees should be charged because the user1 
+
+          // Token Get
+          expect(await exchange.balanceOf(token2.address, user1.address)).to.equal(tokens(1)) // mDAI
+          expect(await exchange.balanceOf(token2.address, user2.address)).to.equal(tokens(0.9)) // mDAI
+          expect(await exchange.balanceOf(token2.address, feeAccount.address)).to.equal(tokens(0.1)) // mDAI
+        })
+
+        it('updates filled orders', async () => {
+          expect(await exchange.orderFilled(1)).to.equal(true)
+        })
+
+        it('emits a Trade event', async () => {
+          const event = result.events[0]
+          expect(event.event).to.equal('Trade')
+
+          const args = event.args
+          expect(args.id).to.equal(1)
+          expect(args.user).to.equal(user2.address) // User who fills the order
+          expect(args.tokenGet).to.equal(token2.address) 
+          expect(args.amountGet).to.equal(tokens(1))
+          expect(args.tokenGive).to.equal(token1.address)
+          expect(args.amountGive).to.equal(tokens(1))
+          expect(args.creator).to.equal(user1.address)
+          expect(args.timestamp).to.at.least(1)
+        })
+
+      })
+
+      describe('Failure', async () => {
+        it('rejects invalid order ids', async () => {
+          const invalidOrderId = 99999
+          await expect(exchange.connect(user2).fillOrder(invalidOrderId)).to.be.reverted
+        })
+
+        it('rejects already filled orders', async () => {
+          transaction = await exchange.connect(user2).fillOrder(1) // Fill the order
+          await transaction.wait() // Wait for it to finish
+
+          await expect(exchange.connect(user2).fillOrder(1)).to.be.reverted // And try to fill it again, so it can't be filled twice
+        })
+
+        it('rejects cancelled orders', async () => {
+          transaction = await exchange.connect(user1).cancelOrder(1) // user1 cancels the order
+          await transaction.wait() // Wait for it to finish
+
+          await expect(exchange.connect(user2).fillOrder(1)).to.be.reverted // user2 tries to fill the order
+        })
+
+      })
+
+    })
+
   })
+
 })

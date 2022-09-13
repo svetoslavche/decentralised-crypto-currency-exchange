@@ -161,7 +161,7 @@ describe('Token', () => { // Tests go inside this separate block
 
       it('rejects invalid recipient', async () => { // Make sure the exchange can't send tokens to random address
         const amount = tokens(100) 
-        await expect(token.connect(receiver).transfer('0x0000000000000000000000000000000000000000', amount)).to.be.reverted
+        await expect(token.connect(exchange).transfer('0x0000000000000000000000000000000000000000', amount)).to.be.reverted
       })      
 
     })
@@ -169,3 +169,4 @@ describe('Token', () => { // Tests go inside this separate block
   })
 
 })
+
