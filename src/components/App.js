@@ -1,26 +1,26 @@
 import { useEffect } from 'react';
-import { ethers } from 'ethers';
+import { useDispatch } from 'react-redux'
 import config from '../config.json';
-import TOKEN_ABI from '../abis/Token.json';
-import '../App.css';
+
+import { 
+  loadProvider, 
+  loadNetwork, 
+  loadAccount,
+  loadToken,
+
+} from '../store/interactions';
 
 function App() {
+  const dispatch = useDispatch()
 
   const loadBlockchainData = async () => {
-    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' }) 
-    // This is going to make an RPC call to our node to get the account we're connected with
-    console.log(accounts[0])
+    await loadAccount(dispatch)
 
-    const provider = new ethers.providers.Web3Provider(window.ethereum) // Connect Ethers to blockchain
-    const { chainId } = await provider.getNetwork()
-    console.log(chainId) // Log the current network ID to the console so we can prove the connection
-
+    const provider = loadProvider(dispatch) // uses logic from interactions.js to connect Ethers to blockchain
+    const chainId = await loadNetwork(provider, dispatch)
 
     // Token smart contract
-    const token = new ethers.Contract(config[chainId].DApp.address, TOKEN_ABI, provider)
-    console.log(token.address)
-    const symbol = await token.symbol()
-    console.log(symbol)
+    await loadToken(provider, config[chainId].DApp.address, dispatch)
   }
 
   useEffect(() => { // the effect hook lets us perform side effects in function components
