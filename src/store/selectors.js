@@ -55,6 +55,74 @@ const decorateOrder = (order, tokens) => {
 }
 
 // --------------------------------------------------------------------------------
+// ALL FILLED ORDERS
+
+export const filledOrdersSelector = createSelector(
+	filledOrders,
+	tokens,
+	(orders, tokens) => {
+		// Safeguard to make sure we have both tokens. If not we'll stop the execution
+		if (!tokens[0] || !tokens[1]) { return } 
+
+		// Filter orders by selected tokens
+		orders = orders.filter((o) => o.tokenGet === tokens[0].address || o.tokenGet === tokens[1].address)
+		orders = orders.filter((o) => o.tokenGive === tokens[0].address || o.tokenGive === tokens[1].address)
+
+		// Sort orders by time ascending for price comparison
+		orders = orders.sort((a,b) => a.timestamp - b.timestamp)
+
+		// Decorate orders
+		orders = decorateFilledOrders(orders, tokens)
+
+		// Sort orders by date descending for display in UI
+		orders = orders.sort((a,b) => b.timestamp - a.timestamp)
+
+		return orders
+	}
+)
+
+const decorateFilledOrders = (orders, tokens) => {
+	// Track previous order to compare history
+	let previousOrder = orders[0]
+
+	return(
+		orders.map((order) => {
+
+			//decorate each individual order
+			order = decorateOrder(order, tokens)
+			order = decorateFilledOrder(order, previousOrder)
+			previousOrder = order // Update the previous order once it's decorated 
+
+		return order
+		})
+	)
+}
+
+const decorateFilledOrder = (order, previousOrder) => {
+
+	return({
+		...order,
+		tokenPriceClass: tokenPriceClass(order.tokenPrice, order.id, previousOrder)
+	})
+}
+
+const tokenPriceClass = (tokenPrice, orderId, previousOrder) => {
+	// Show green price if only one order exists
+	if (previousOrder.id === orderId) {
+		return GREEN
+	}
+
+	// Show green price if order price is higher than previous order
+	// Show red price if order price is lower than previous order
+	if (previousOrder.tokenPrice <= tokenPrice) {
+		return GREEN // success
+	} else {
+		return RED // danger
+	}
+
+}
+
+// --------------------------------------------------------------------------------
 // ORDER BOOK
 
 export const orderBookSelector = createSelector(
