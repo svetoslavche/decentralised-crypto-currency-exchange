@@ -122,7 +122,50 @@ export const exchange = (state = DEFAULT_EXCHANGE_STATE, action) => {
       }
 
     // --------------------------------------------------------------------------------
+    // CANCELLING ORDERS
+
+    case 'ORDER_CANCEL_REQUEST':
+      return {
+        ...state,
+        transaction: {
+          transactionType: 'Cancel',
+          isPending: true,
+          isSuccessful: false
+        }
+      }
+
+    case 'ORDER_CANCEL_SUCCESS':
+      return {
+        ...state,
+        transaction: {
+          transactionType: 'Cancel',
+          isPending: false,
+          isSuccessful: true
+        },
+        cancelledOrders: { // Update the cancelled orders in the state
+          ...state.cancelledOrders, // We get the existing cancelled orders
+          data: [
+            ...state.cancelledOrders.data, // We get the existing data
+            action.order // Add action.order to that data
+          ]
+        },
+        events: [action.event, ...state.events] // Add the action to the existing events
+      }
+
+    case 'ORDER_CANCEL_FAIL':
+      return {
+        ...state,
+        transaction: {
+          transactionType: 'Cancel',
+          isPending: false,
+          isSuccessful: false,
+          isError: true
+        }
+      }  
+
+    // --------------------------------------------------------------------------------
     // BALANCE CASES
+
     case 'EXCHANGE_TOKEN_1_BALANCE_LOADED':
       return {
         ...state,
@@ -136,6 +179,7 @@ export const exchange = (state = DEFAULT_EXCHANGE_STATE, action) => {
 
     // --------------------------------------------------------------------------------
     // TRANSFER CASES (DEPOSIT & WITHDRAWS)
+
     case 'TRANSFER_REQUEST':
       return {
         ...state,
