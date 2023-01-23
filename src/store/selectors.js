@@ -112,7 +112,7 @@ export const filledOrdersSelector = createSelector(
 		// Safeguard to make sure we have both tokens. If not we'll stop the execution
 		if (!tokens[0] || !tokens[1]) { return } 
 
-		// Filter orders by selected tokens
+		// Filter orders for the trading pair
 		orders = orders.filter((o) => o.tokenGet === tokens[0].address || o.tokenGet === tokens[1].address)
 		orders = orders.filter((o) => o.tokenGive === tokens[0].address || o.tokenGive === tokens[1].address)
 
@@ -168,6 +168,59 @@ const tokenPriceClass = (tokenPrice, orderId, previousOrder) => {
 		return RED // danger
 	}
 
+}
+
+// --------------------------------------------------------------------------------
+// MY FILLED ORDERS
+
+export const myFilledOrdersSelector = createSelector(
+		account,
+		tokens,
+		filledOrders,
+		(account, tokens, orders) => {
+			if(!tokens[0] || !tokens[1]) { return }
+
+			// Find our orders
+			orders = orders.filter((o) => o.user === account || o.creator === account)
+			// Filter orders for the trading pair
+			orders = orders.filter((o) => o.tokenGet === tokens[0].address || o.tokenGet === tokens[1].address)
+			orders = orders.filter((o) => o.tokenGive === tokens[0].address || o.tokenGive === tokens[1].address)
+			// Sort by date descending
+			orders = orders.sort((a,b) => b.timestamp - a.timestamp)
+
+			// Decorate orders - add display attributes
+			orders = decorateMyFilledOrders(orders, account, tokens)
+
+		return orders
+	}
+)
+
+const decorateMyFilledOrders = (orders, account, tokens) => {
+	return(
+		orders.map((order) => {
+			order = decorateOrder(order, tokens)
+			order = decorateMyFilledOrder(order, account, tokens)
+			return(order)
+		})
+	)
+}
+
+const decorateMyFilledOrder = (order, account, tokens) => {
+	const myOrder = order.creator === account // Check if it's my order or not
+
+	let orderType 
+	if(myOrder) {
+		orderType = order.tokenGive === tokens[1].address ? 'buy' : 'sell' // If it's my order and tokenGive = token1.address it's a buy order
+	} else {
+		orderType = order.tokenGive === tokens[1].address ? 'sell' : 'buy' // If it's not my order and tokenGive = token1.address it's a sell order
+	}
+
+	return ({
+		...order,
+		orderType,
+		orderClass: (orderType === 'buy' ? GREEN : RED),
+		orderSign: (orderType === 'buy' ? '+' : '-')
+	})
 }
 
 // --------------------------------------------------------------------------------
