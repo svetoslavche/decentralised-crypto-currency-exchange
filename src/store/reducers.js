@@ -77,6 +77,12 @@ const DEFAULT_EXCHANGE_STATE = {
     loaded: false,
     data: []
   },
+  cancelledOrders: {
+    data: []
+  },
+  filledOrders: {
+    data: []
+  },
   events:[]
 }
 
@@ -157,6 +163,54 @@ export const exchange = (state = DEFAULT_EXCHANGE_STATE, action) => {
         ...state,
         transaction: {
           transactionType: 'Cancel',
+          isPending: false,
+          isSuccessful: false,
+          isError: true
+        }
+      }  
+
+    // --------------------------------------------------------------------------------
+    // FILLING ORDERS
+
+    case 'ORDER_FILL_REQUEST':
+      return {
+        ...state,
+        transaction: {
+          transactionType: 'Fill Order',
+          isPending: true,
+          isSuccessful: false
+        }
+      }
+
+    case 'ORDER_FILL_SUCCESS':
+      // Prevent duplicate orders by filtering through the orders and if the order id is the same we'll skip it
+      index = state.filledOrders.data.findIndex(order => order.id.toString() === action.order.id.toString())
+
+      if (index === -1) { // If the index is negative 1 we're going to add it to the data
+        data = [...state.filledOrders.data, action.order]
+      } else {
+        data = state.filledOrders.data // if not then skip it
+      }
+
+      return {
+        ...state,
+        transaction: {
+          transactionType: 'Fill Order',
+          isPending: false,
+          isSuccessful: true
+        },
+        filledOrders: { // Update the filled orders in the state
+          ...state.filledOrders, // We get the existing filled orders
+          data  // Add the data that comes back
+        },
+        events: [action.event, ...state.events] // Add the action to the existing events
+      }
+
+    case 'ORDER_FILL_FAIL':
+      return {
+        ...state,
+        transaction: {
+          transactionType: 'Fill Order',
           isPending: false,
           isSuccessful: false,
           isError: true

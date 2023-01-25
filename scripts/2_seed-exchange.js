@@ -86,7 +86,7 @@ async function main() {
   await wait(1)
 
   ////////////////////////////////////////////////////////////
-  // Seed a Cancelled Order
+  // Seed a Filled Order
   //
 
   // user1 makes order
