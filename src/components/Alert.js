@@ -2,7 +2,8 @@ import { useRef, useEffect } from 'react'
 import { useSelector } from 'react-redux'
 
 import { myEventsSelector } from '../store/selectors'
-
+import fail from '../assets/fail.svg';
+import success from '../assets/success.svg';
 import config from '../config.json'
 
 const Alert = () => {
@@ -35,13 +36,15 @@ const Alert = () => {
         ) : isError ? ( 
 
           <div className="alert alert--remove" onClick={removeHandler} ref={alertRef}>
-            <h1>Transaction Will Fail</h1>
+            <h1>Transaction Failed</h1>
+            <img src={fail} alt="Fail" />
           </div>
 
         ) : !isPending && events[0] ? (
 
           <div className="alert alert--remove" onClick={removeHandler} ref={alertRef}>
           <h1>Transaction Successful</h1>
+          <img src={success} alt="Success" />
             <a
               href={config[network] ? `$config[network].explorerURL/tx/$events[0].transactionHash` : '#' }
               target='_blank'
