@@ -18,10 +18,12 @@ const Markets = () => {
     <div className='component exchange__markets'>
       <div className='component__header'>
         <h2>Select Market</h2>
+        
       </div>
 
       {chainId && config[chainId] ? (
         <select name="markets" id="markets" onChange={marketHandler}>
+          {/* // how the fuck do I display a down arrow for the trading pairs similar to Select Network in Navbar.js /> */}
           <option value={`${config[chainId].DApp.address},${config[chainId].mETH.address}`}>DApp / mETH</option>
           <option value={`${config[chainId].DApp.address},${config[chainId].mDAI.address}`}>DApp / mDAI</option>
         </select>
