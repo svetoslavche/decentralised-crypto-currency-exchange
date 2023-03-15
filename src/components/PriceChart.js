@@ -51,8 +51,6 @@ const PriceChart = () => {
           height="100%"
         />
       )}
-
-
     </div>
   );
 }
