@@ -156,7 +156,7 @@ describe('Token', () => { // Tests go inside this separate block
 
       it('rejects insufficient balances', async () => {
         const invalidAmount = tokens(100000000) // Attempt to transfer 100 million tokens, which is greater than total supply
-        await expect(token.connect(exchange).transfer(deployer.address, receiver.address, invalidAmount)).to.be.reverted
+        await expect(token.connect(exchange).transferFrom(deployer.address, receiver.address, invalidAmount)).to.be.reverted
       })
 
       it('rejects invalid recipient', async () => { // Make sure the exchange can't send tokens to random address
